@@ -9,7 +9,7 @@
 # Feel free to change the settings, but only the nde flow option will work at
 # present.
 
-python -m lfigw.gwpe train new nde \
+python -m lfigw.gwpe train new reflow \
     --data_dir waveforms/GW150914/ \
     --model_dir models/GW150914/ \
     --nbins 8 \

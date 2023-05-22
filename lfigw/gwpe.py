@@ -3,9 +3,14 @@ import os
 os.environ['OMP_NUM_THREADS'] = str(1)
 os.environ['MKL_NUM_THREADS'] = str(1)
 
+from multiprocessing import set_start_method
+# set_start_method('spawn')
+
 import argparse
 from torch.utils.data import DataLoader
 import torch
+#torch.multiprocessing.set_start_method('spawn')
+
 from pathlib import Path
 import matplotlib.pyplot as plt
 import corner
@@ -18,7 +23,7 @@ from . import waveform_generator as wfg
 from . import a_flows
 from . import nde_flows
 from . import cvae
-
+from . import reflow
 
 class PosteriorModel(object):
 
@@ -40,7 +45,7 @@ class PosteriorModel(object):
 
         if use_cuda and torch.cuda.is_available():
             self.device = torch.device('cuda')
-            torch.set_default_tensor_type('torch.cuda.FloatTensor')
+            #torch.set_default_tensor_type('torch.cuda.FloatTensor')
         else:
             self.device = torch.device('cpu')
 
@@ -115,17 +120,19 @@ class PosteriorModel(object):
         wfd_train = wfg.WaveformDatasetTorch(self.wfd, train=True)
         wfd_test = wfg.WaveformDatasetTorch(self.wfd, train=False)
 
+        #generator=torch.Generator(device='cuda')
+
         # DataLoader objects
         self.train_loader = DataLoader(
             wfd_train, batch_size=batch_size, shuffle=True, pin_memory=True,
             num_workers=16,
             worker_init_fn=lambda _: np.random.seed(
-                int(torch.initial_seed()) % (2**32-1)))
+                int(torch.initial_seed()) % (2**32-1)), generator=torch.Generator(device='cpu'))
         self.test_loader = DataLoader(
             wfd_test, batch_size=batch_size, shuffle=False, pin_memory=True,
             num_workers=16,
             worker_init_fn=lambda _: np.random.seed(
-                int(torch.initial_seed()) % (2**32-1)))
+                int(torch.initial_seed()) % (2**32-1)), generator=torch.Generator(device='cpu'))
 
     def construct_model(self, model_type, existing=False, **kwargs):
         """Construct the neural network model.
@@ -189,6 +196,8 @@ class PosteriorModel(object):
             model_creator = cvae.CVAE
         elif model_type == 'nde':
             model_creator = nde_flows.create_NDE_model
+        elif model_type == 'reflow':
+            model_creator = reflow.create_reflow_model
         else:
             raise NameError('Invalid model type')
 
@@ -214,18 +223,7 @@ class PosteriorModel(object):
                                   covariance_matrix=torch.diag_embed(
                                       torch.ones(base_dim,
                                                  device=self.device))))
-
-        # I would like to use the code below, but the KL divergence doesn't
-        # work... Should be a workaround.
-
-        # self.base_dist = torch.distributions.Independent(
-        #     torch.distributions.Normal(
-        #         loc=torch.zeros(base_dim, device=self.device),
-        #         scale=torch.ones(base_dim, device=self.device)
-        #         ),
-        #     1
-        # )
-
+            
         self.model.to(self.device)
 
         self.model_type = model_type
@@ -450,6 +448,24 @@ class PosteriorModel(object):
                     self.device,
                     add_noise,
                     snr_annealing)
+
+            elif self.model_type == 'reflow':
+                train_loss = reflow.train_epoch(
+                    self.model,
+                    self.train_loader,
+                    self.optimizer,
+                    epoch,
+                    self.device,
+                    output_freq,
+                    add_noise,
+                    )
+                test_loss = reflow.test_epoch(
+                    self.model,
+                    self.test_loader,
+                    epoch,
+                    self.device,
+                    add_noise,
+                    )
 
             elif self.model_type == 'cvae':
                 train_loss, train_reconstruction_loss, train_kl_loss = \
@@ -1116,6 +1132,15 @@ def main():
                     batch_norm=args.batch_norm,
                     prior_gaussian_nn=args.prior_gaussian_nn,
                     prior_full_cov=args.prior_full_cov)
+
+            elif args.model_type == 'reflow':
+                pm.construct_model(
+                    'reflow',
+                    base_transform_kwargs={
+                        'hidden_dim': args.hidden_dims,
+                    }
+                )
+
 
             print('\nInitial learning rate', args.lr)
             if args.lr_annealing is True:
