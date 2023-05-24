@@ -40,7 +40,7 @@ class PosteriorModel(object):
 
         if use_cuda and torch.cuda.is_available():
             self.device = torch.device('cuda')
-            torch.set_default_tensor_type('torch.cuda.FloatTensor')
+            # torch.set_default_tensor_type('torch.cuda.FloatTensor')
         else:
             self.device = torch.device('cpu')
 
@@ -120,12 +120,12 @@ class PosteriorModel(object):
             wfd_train, batch_size=batch_size, shuffle=True, pin_memory=True,
             num_workers=16,
             worker_init_fn=lambda _: np.random.seed(
-                int(torch.initial_seed()) % (2**32-1)))
+                int(torch.initial_seed()) % (2**32-1)), generator=torch.Generator(device='cpu'))
         self.test_loader = DataLoader(
             wfd_test, batch_size=batch_size, shuffle=False, pin_memory=True,
             num_workers=16,
             worker_init_fn=lambda _: np.random.seed(
-                int(torch.initial_seed()) % (2**32-1)))
+                int(torch.initial_seed()) % (2**32-1)), generator=torch.Generator(device='cpu'))
 
     def construct_model(self, model_type, existing=False, **kwargs):
         """Construct the neural network model.
