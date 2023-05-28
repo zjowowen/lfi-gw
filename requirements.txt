@@ -1,0 +1,24 @@
+numpy
+scipy
+matplotlib
+scikit-learn
+corner
+h5py
+jupyterlab
+ipython
+lalsuite
+pycbc
+pandas
+tqdm
+bilby
+astropy
+gwpy
+chainconsumer
+nflows
+pyro-ppl
+
+# install by conda
+# ligo.skymap
+
+# ffjord
+torchdiffeq
