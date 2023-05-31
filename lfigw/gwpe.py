@@ -424,6 +424,9 @@ class PosteriorModel(object):
 
             print('Learning rate: {}'.format(
                 self.optimizer.state_dict()['param_groups'][0]['lr']))
+            
+            epoch_start_time=time.time()
+
             if self.model_type == 'maf':
                 train_loss = a_flows.train_epoch(
                     self.model,
@@ -505,7 +508,9 @@ class PosteriorModel(object):
             if self.scheduler is not None:
                 self.scheduler.step()
 
-            wandb.log(data={"train_loss":train_loss, "test_loss":test_loss}, step=epoch)
+            epoch_end_time=time.time()
+
+            wandb.log(data={"train_loss":train_loss, "test_loss":test_loss, "time_per_epoch":epoch_end_time-epoch_start_time}, step=epoch)
 
             self.epoch = epoch + 1
             self.train_history.append(train_loss)
