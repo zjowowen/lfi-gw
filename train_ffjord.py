@@ -187,7 +187,7 @@ def parse_args():
                  dir_parent_parser,
                  train_parent_parser]
     )
-    ffjord_parser.add_argument('--name', default="default" ,type=str, required=True)
+    ffjord_parser.add_argument('--name', default="default" ,type=str, required=False)
 
     # Pure CVAE
 
