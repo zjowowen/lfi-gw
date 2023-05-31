@@ -19,4 +19,4 @@ python -m train_ffjord train new ffjord \
     --truncate_basis 100 \
     --activation elu \
     --lr_anneal_method cosine \
-    --batch_size 4096
+    --batch_size 9000
