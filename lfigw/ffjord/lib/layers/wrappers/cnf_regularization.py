@@ -21,7 +21,7 @@ class RegularizedODEfunc(nn.Module):
             logp.requires_grad_(True)
             context.requires_grad_(True)
             dstate = self.odefunc(t, (x, logp, context))
-            if len(state) > 2:
+            if len(dstate) > 2:
                 dx, dlogp = dstate[:2]
                 reg_states = tuple(reg_fn(x, logp, dx, dlogp, SharedContext) for reg_fn in self.regularization_fns)
                 return dstate + reg_states
