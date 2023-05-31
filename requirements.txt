@@ -17,6 +17,9 @@ chainconsumer
 nflows
 pyro-ppl
 
+easydict
+wandb
+
 # install by conda
 # ligo.skymap
 

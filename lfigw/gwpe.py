@@ -13,6 +13,8 @@ import csv
 import time
 import numpy as np
 import h5py
+import wandb
+
 
 from . import waveform_generator as wfg
 from . import a_flows
@@ -404,7 +406,7 @@ class PosteriorModel(object):
         self.model.eval()
 
     def train(self, epochs, output_freq=50, kl_annealing=True,
-              snr_annealing=False):
+              snr_annealing=False, save_freq=25,):
         """Train the model.
 
         Args:
@@ -503,6 +505,8 @@ class PosteriorModel(object):
             if self.scheduler is not None:
                 self.scheduler.step()
 
+            wandb.log(data={"train_loss":train_loss, "test_loss":test_loss}, step=epoch)
+
             self.epoch = epoch + 1
             self.train_history.append(train_loss)
             self.test_history.append(test_loss)
@@ -531,6 +535,9 @@ class PosteriorModel(object):
                             writer = csv.writer(f, delimiter='\t')
                             writer.writerow(
                                 [epoch, train_kl_loss, test_kl_loss])
+
+            if epoch>=1 and epoch % save_freq==0:
+                self.save_model(filename=f'model_{epoch}.pt', aux_filename=f'waveforms_supplementary_{epoch}.hdf5')
 
     def init_waveform_supp(self, aux_filename='waveforms_supplementary.hdf5'):
 

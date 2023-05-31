@@ -9,7 +9,7 @@
 # Feel free to change the settings, but only the nde flow option will work at
 # present.
 
-python -m train_ffjord.py train new ffjord \
+python -m train_ffjord train new ffjord \
     --data_dir waveforms/GW150914/ \
     --model_dir models/GW150914/ \
     --lr 0.0002 \
@@ -20,4 +20,3 @@ python -m train_ffjord.py train new ffjord \
     --activation elu \
     --lr_anneal_method cosine \
     --batch_size 4096
-    

@@ -5,6 +5,7 @@ os.environ['MKL_NUM_THREADS'] = str(1)
 
 import argparse
 import time
+import wandb
 
 from lfigw.gwpe import PosteriorModel
 from lfigw.gwpe import Nestedspace
@@ -186,6 +187,7 @@ def parse_args():
                  dir_parent_parser,
                  train_parent_parser]
     )
+    ffjord_parser.add_argument('--name', default="default" ,type=str, required=True)
 
     # Pure CVAE
 
@@ -585,6 +587,8 @@ def main():
         print('Starting timer')
         start_time = time.time()
 
+        wandb.init(project=f"cnf-{args.name}")
+        
         pm.train(args.epochs,
                  output_freq=args.output_freq,
                  kl_annealing=args.kl_annealing,
