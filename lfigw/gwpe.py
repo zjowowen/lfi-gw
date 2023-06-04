@@ -1249,7 +1249,7 @@ def main():
         print('Starting timer')
         start_time = time.time()
 
-        wandb.init(project=f"cnf-{args.model_type}-{args.dataset}", config=vars(args))
+        wandb.init(project=f"cnf-{args.model_type}", config=vars(args))
 
         pm.train(args.epochs,
                  output_freq=args.output_freq,
