@@ -29,3 +29,4 @@ dependencies:
     - pyro-ppl
     - torchdiffeq
     - wandb
+    - easydict
