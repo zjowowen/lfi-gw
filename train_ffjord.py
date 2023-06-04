@@ -182,12 +182,28 @@ def parse_args():
 
     ffjord_parser = type_subparsers.add_parser(
         'ffjord',
-        description=('Build and train a flow from the nde package.'),
+        description=('Build and train a flow from the ffjord package.'),
         parents=[activation_parent_parser,
-                 dir_parent_parser,
-                 train_parent_parser]
+                    dir_parent_parser,
+                    train_parent_parser]
     )
-    ffjord_parser.add_argument('--name', default="default" ,type=str, required=False)
+    ffjord_parser.add_argument('--atol', type=float, default=1e-05)
+    ffjord_parser.add_argument('--rtol', type=float, default=1e-05)
+    ffjord_parser.add_argument('--batch_norm', action='store_true')
+    ffjord_parser.add_argument('--bn_lag', type=int, default=0)
+    ffjord_parser.add_argument('--dims', type=str, default='64-64-64')
+    ffjord_parser.add_argument('--divergence_fn', type=str, default='brute_force')
+    ffjord_parser.add_argument('--layer_type', type=str, default='concatsquash')
+    ffjord_parser.add_argument('--nonlinearity', type=str, default='tanh')
+    ffjord_parser.add_argument('--num_blocks', type=int, default=1)
+    ffjord_parser.add_argument('--rademacher', action='store_true')
+    ffjord_parser.add_argument('--residual', action='store_true')
+    ffjord_parser.add_argument('--solver', type=str, default='dopri5')
+    ffjord_parser.add_argument('--step_size', type=float, default=None)
+    ffjord_parser.add_argument('--spectral_norm', action='store_true')
+    ffjord_parser.add_argument('--time_length', type=float, default=0.5)
+    ffjord_parser.add_argument('--train_T', action='store_true')
+    ffjord_parser.add_argument('--weight_decay', type=float, default=1e-05)
 
     # Pure CVAE
 
@@ -310,6 +326,7 @@ def parse_args():
 
     return parser.parse_args(namespace=ns)
 
+
 def main():
     args = parse_args()
 
@@ -365,8 +382,20 @@ def main():
             elif args.model_type == 'ffjord':
                 pm.construct_model(
                     'ffjord',
-                    base_transform_kwargs={
-                    }
+                    weight_decay=args.weight_decay,
+                    num_blocks=args.num_blocks,
+                    dims=args.dims,
+                    divergence_fn=args.divergence_fn,
+                    batch_norm=args.batch_norm,
+                    layer_type=args.layer_type,
+                    solver=args.solver,
+                    atol=args.atol,
+                    rtol=args.rtol,
+                    nonlinearity=args.nonlinearity,
+                    rademacher=args.rademacher,
+                    residual=args.residual,
+                    time_length=args.time_length,
+                    train_T=args.train_T,
                 )
 
             elif args.model_type == 'cvae':
@@ -587,8 +616,8 @@ def main():
         print('Starting timer')
         start_time = time.time()
 
-        wandb.init(project=f"cnf-{args.name}")
-        
+        wandb.init(project=f"cnf-{args.model_type}", config=vars(args))
+
         pm.train(args.epochs,
                  output_freq=args.output_freq,
                  kl_annealing=args.kl_annealing,
@@ -604,6 +633,7 @@ def main():
             pm.save_model()
 
     print('Program complete')
+
 
 if __name__ == "__main__":
     main()

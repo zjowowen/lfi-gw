@@ -193,9 +193,7 @@ class PosteriorModel(object):
         elif model_type == 'nde':
             model_creator = nde_flows.create_NDE_model
         elif model_type == 'ffjord':
-
-            self.ffjord=conditioned_ffjord.ffjord_model()
-            model_creator = self.ffjord.create_Ffjord_model
+            model_creator = conditioned_ffjord.create_ffjord_model
         else:
             raise NameError('Invalid model type')
 
@@ -262,7 +260,7 @@ class PosteriorModel(object):
                                        'lr': flow_lr})
             self.optimizer = torch.optim.Adam(param_list, lr=lr)
         elif self.model_type == 'ffjord':
-            self.optimizer = torch.optim.Adam(self.model.parameters(), lr=lr, weight_decay=self.ffjord.weight_decay)
+            self.optimizer = torch.optim.Adam(self.model.parameters(), lr=lr, weight_decay=self.model.model_hyperparams["weight_decay"])
         else:
             self.optimizer = torch.optim.Adam(self.model.parameters(), lr=lr)
 
@@ -284,6 +282,11 @@ class PosteriorModel(object):
                         T_0=10,
                         T_mult=2
                     )
+                )
+            elif anneal_method == "linear":
+                self.scheduler = torch.optim.lr_scheduler.LambdaLR(
+                    self.optimizer,
+                    lr_lambda=lambda epoch: 1 - epoch / total_epochs
                 )
 
         self.epoch = 1
@@ -420,6 +423,9 @@ class PosteriorModel(object):
         else:
             add_noise = True
 
+        if self.model_type == 'ffjord':
+            train_ffjord=conditioned_ffjord.train_ffjord_model()
+
         for epoch in range(self.epoch, self.epoch + epochs):
 
             print('Learning rate: {}'.format(
@@ -464,18 +470,16 @@ class PosteriorModel(object):
                     snr_annealing)
 
             elif self.model_type == 'ffjord':
-                self.ffjord.parepare_for_training()
-                train_loss = self.ffjord.train_epoch(
+                train_loss = train_ffjord.train_epoch(
                     self.model,
                     self.train_loader,
                     self.optimizer,
                     epoch,
                     self.device,
                     output_freq)
-                test_loss = self.ffjord.test_epoch(
+                test_loss = train_ffjord.test_epoch(
                     self.model,
                     self.test_loader,
-                    epoch,
                     self.device)
 
             elif self.model_type == 'cvae':
@@ -608,7 +612,7 @@ class PosteriorModel(object):
                 self.model, y, nsamples, self.device
             )
         elif self.model_type == 'ffjord':
-            x_samples = self.ffjord.obtain_samples(
+            x_samples = conditioned_ffjord.obtain_samples(
                 self.model, y, nsamples, self.device
             )
         elif self.model_type == 'cvae':
@@ -807,6 +811,33 @@ def parse_args():
                             choices=['rq-coupling', 'rq-autoregressive'],
                             default='rq-coupling')
 
+    # ffjord
+
+    ffjord_parser = type_subparsers.add_parser(
+        'ffjord',
+        description=('Build and train a flow from the ffjord package.'),
+        parents=[activation_parent_parser,
+                    dir_parent_parser,
+                    train_parent_parser]
+    )
+    ffjord_parser.add_argument('--atol', type=float, default=1e-05)
+    ffjord_parser.add_argument('--rtol', type=float, default=1e-05)
+    ffjord_parser.add_argument('--batch_norm', action='store_true')
+    ffjord_parser.add_argument('--bn_lag', type=int, default=0)
+    ffjord_parser.add_argument('--dims', type=str, default='64-64-64')
+    ffjord_parser.add_argument('--divergence_fn', type=str, default='brute_force')
+    ffjord_parser.add_argument('--layer_type', type=str, default='concatsquash')
+    ffjord_parser.add_argument('--nonlinearity', type=str, default='tanh')
+    ffjord_parser.add_argument('--num_blocks', type=int, default=1)
+    ffjord_parser.add_argument('--rademacher', action='store_true')
+    ffjord_parser.add_argument('--residual', action='store_true')
+    ffjord_parser.add_argument('--solver', type=str, default='dopri5')
+    ffjord_parser.add_argument('--step_size', type=float, default=None)
+    ffjord_parser.add_argument('--spectral_norm', action='store_true')
+    ffjord_parser.add_argument('--time_length', type=float, default=0.5)
+    ffjord_parser.add_argument('--train_T', action='store_true')
+    ffjord_parser.add_argument('--weight_decay', type=float, default=1e-05)
+
     # Pure CVAE
 
     cvae_parser = type_subparsers.add_parser(
@@ -984,8 +1015,20 @@ def main():
             elif args.model_type == 'ffjord':
                 pm.construct_model(
                     'ffjord',
-                    base_transform_kwargs={
-                    }
+                    weight_decay=args.weight_decay,
+                    num_blocks=args.num_blocks,
+                    dims=args.dims,
+                    divergence_fn=args.divergence_fn,
+                    batch_norm=args.batch_norm,
+                    layer_type=args.layer_type,
+                    solver=args.solver,
+                    atol=args.atol,
+                    rtol=args.rtol,
+                    nonlinearity=args.nonlinearity,
+                    rademacher=args.rademacher,
+                    residual=args.residual,
+                    time_length=args.time_length,
+                    train_T=args.train_T,
                 )
 
             elif args.model_type == 'cvae':
@@ -1205,6 +1248,8 @@ def main():
 
         print('Starting timer')
         start_time = time.time()
+
+        wandb.init(project=f"cnf-{args.model_type}-{args.dataset}", config=vars(args))
 
         pm.train(args.epochs,
                  output_freq=args.output_freq,
