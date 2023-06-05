@@ -16,13 +16,12 @@ from lfigw.gwpe import PosteriorModel
 import lfigw.waveform_generator as wfg
 
 pm = PosteriorModel(model_dir='./models/GW150914/', data_dir='./waveforms/GW150914/')
-pm.load_model()
+pm.load_model(filename="model.pt")
 pm.wfd = wfg.WaveformDataset()
 pm.wfd.load_noisy_test_data(pm.data_dir)
 pm.init_waveform_supp()
 
-from lfigw.conditioned_ffjord import ffjord_model, obtain_samples
-ffjord=ffjord_model()
+from lfigw.conditioned_ffjord import obtain_samples
 
 # Load strain data for event
 
@@ -60,11 +59,11 @@ params_samples = pm.wfd.post_process_parameters(x_samples.numpy())
 
 import bilby
 # Specify the output directory and the name of the bilby run
-outdir = '../bilby_runs/GW150914'
+outdir = './bilby_runs/GW150914'
 label = 'GW150914'
 
 # Load bilby samples
-result = bilby.result.read_in_result(filename="./bilby_runs/GW150914/GW150914_resume.pickle",outdir=outdir, label=label, extension="pickle")
+result = bilby.result.read_in_result(filename="./bilby_runs/GW150914/GW150914_result.json", label=label)
 
 bilby_samples = result.posterior[['mass_1', 'mass_2', 'phase', 'geocent_time', 'luminosity_distance',
                                   'a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl',
@@ -85,7 +84,7 @@ cosmoprior = bilby.gw.prior.UniformSourceFrame(name='luminosity_distance', minim
 weights = cosmoprior.prob(distances)
 weights = weights / np.mean(weights)
 
-np.savez_compressed('../data/posterior_GW150914.npz', samples=params_samples, parameter_labels=pm.wfd.parameter_labels, weights=weights, bilby_samples=bilby_samples)
+np.savez_compressed('./data/posterior_GW150914.npz', samples=params_samples, parameter_labels=pm.wfd.parameter_labels, weights=weights, bilby_samples=bilby_samples)
 
 
 dom = [[30,55], [20,45], [0, 2*np.pi], [0.015,0.045], [100,800], [0,1], [0,1], [0,np.pi], [0,np.pi], [0, 2*np.pi], [0, 2*np.pi], [0,np.pi], [0,np.pi], [0.6,3.2], [-np.pi/2,.1]]
@@ -145,5 +144,5 @@ parameter_labels = pm.wfd.parameter_labels
 
 make_pp(percentiles, parameter_labels)
 
-np.savez_compressed('../data/pp_GW150914.npz', parameter_labels=parameter_labels, percentiles=percentiles)
+np.savez_compressed('./data/pp_GW150914.npz', parameter_labels=parameter_labels, percentiles=percentiles)
 
