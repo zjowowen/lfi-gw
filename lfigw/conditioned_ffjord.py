@@ -186,6 +186,8 @@ class train_ffjord_model:
 
             loss = -logpx
 
+            loss = loss.squeeze(-1)
+
             # Keep track of total loss. w is a weight to be applied to each
             # element.
             train_loss += (w * loss.detach()).sum()
