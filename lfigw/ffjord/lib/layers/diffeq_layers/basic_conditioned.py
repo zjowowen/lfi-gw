@@ -97,3 +97,10 @@ class ConcatSquashLinear(nn.Module):
         return self._layer(torch.cat([x, context], 1)) * torch.sigmoid(self._hyper_gate(t.view(-1))) \
             + self._hyper_bias(t.view(-1))
 
+class ConcatLinear_v3(nn.Module):
+    def __init__(self, dim_in, dim_out, dim_context):
+        super(ConcatLinear_v3, self).__init__()
+        self._layer = nn.Linear(dim_in+dim_context+1, dim_out)
+
+    def forward(self, t, context, x):
+        return self._layer(torch.cat([x, context, t.repeat(x.shape[0], 1)], 1))

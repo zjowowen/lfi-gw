@@ -195,6 +195,7 @@ class ODEnet_conditioned(nn.Module):
                 "squash": diffeq_layers.basic_conditioned.SquashLinear,
                 "concat": diffeq_layers.basic_conditioned.ConcatLinear,
                 "concat_v2": diffeq_layers.basic_conditioned.ConcatLinear_v2,
+                "concat_v3": diffeq_layers.basic_conditioned.ConcatLinear_v3,
                 "concatsquash": diffeq_layers.basic_conditioned.ConcatSquashLinear,
                 #"blend": diffeq_layers.basic_conditioned.BlendLinear,
                 #"concatcoord": diffeq_layers.basic_conditioned.ConcatLinear,
