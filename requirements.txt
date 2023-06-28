@@ -22,6 +22,8 @@ wandb
 
 # install by conda
 # ligo.skymap
+# conda install -c conda-forge gwpy python-lalsimulation ligo.skymap bilby astropy
+# pip install numpy scipy matplotlib scikit-learn corner h5py jupyterlab ipython pycbc pandas tqdm chainconsumer nflows pyro-ppl easydict wandb torchdiffeq
 
 # ffjord
 torchdiffeq
