@@ -856,6 +856,7 @@ def parse_args():
                     dir_parent_parser,
                     train_parent_parser]
     )
+    augmented_ffjord_parser.add_argument('--augment_dim', type=int, default=1)
     augmented_ffjord_parser.add_argument('--atol', type=float, default=1e-05)
     augmented_ffjord_parser.add_argument('--rtol', type=float, default=1e-05)
     augmented_ffjord_parser.add_argument('--batch_norm', action='store_true')
@@ -1070,6 +1071,7 @@ def main():
             elif args.model_type == 'augmented_ffjord':
                 pm.construct_model(
                     'augmented_ffjord',
+                    augment_dim=args.augment_dim,
                     weight_decay=args.weight_decay,
                     num_blocks=args.num_blocks,
                     dims=args.dims,
@@ -1304,7 +1306,7 @@ def main():
         print('Starting timer')
         start_time = time.time()
 
-        wandb.init(project=f"cnf-{args.model_type}", config=vars(args))
+        wandb.init(project=f"lfi-gw-{args.model_type}", config=vars(args))
 
         pm.train(args.epochs,
                  output_freq=args.output_freq,

@@ -43,6 +43,7 @@ def get_transforms(model):
 
 def create_augmented_ffjord_model(input_dim, 
                         context_dim, 
+                        augment_dim=1,
                         **kwargs
                         ):
     """Build conditioned Ffjord model.
@@ -107,12 +108,13 @@ def create_augmented_ffjord_model(input_dim,
     config.update({
         "input_dim":input_dim,
         "context_dim":context_dim,
+        "augment_dim":augment_dim,
     })
 
     config.update(**kwargs)
     easydict_config=EasyDict(config)
 
-    model = build_condition_model_tabular(easydict_config, input_dim+easydict_config.augment_dim, context_dim)
+    model = build_condition_model_tabular(easydict_config, input_dim+augment_dim, context_dim)
     if easydict_config.spectral_norm: add_spectral_norm(model)
     set_cnf_options(easydict_config, model)
 
@@ -135,7 +137,6 @@ class train_augmented_ffjord_model:
         self.tt_meter = utils.RunningAverageMeter(0.93)
 
         self.train_itr=0
-        self.augmented_dim=1
 
 
     def train_epoch(self, flow, train_loader, optimizer, epoch,
@@ -156,6 +157,7 @@ class train_augmented_ffjord_model:
         Returns:
             float -- average train loss over epoch
         """
+        self.augmented_dim=flow.model_hyperparams["augment_dim"]
 
         start_time = time.time()
         flow.train()
@@ -269,6 +271,7 @@ class train_augmented_ffjord_model:
         Returns:
             float -- test loss
         """
+        self.augmented_dim=flow.model_hyperparams["augment_dim"]
 
         with torch.no_grad():
             flow.eval()
@@ -326,7 +329,7 @@ class train_augmented_ffjord_model:
 
             return test_loss
 
-def obtain_samples(flow, y, nsamples, augmented_dim=1, device=None, batch_size=512):
+def obtain_samples(flow, y, nsamples, device=None, batch_size=512):
     """Draw samples from the posterior.
 
     Arguments:
@@ -341,6 +344,8 @@ def obtain_samples(flow, y, nsamples, augmented_dim=1, device=None, batch_size=5
     Returns:
         Tensor -- samples
     """
+
+    augmented_dim=flow.model_hyperparams["augment_dim"]
 
     with torch.no_grad():
         flow.eval()
